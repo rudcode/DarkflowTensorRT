@@ -45,7 +45,7 @@ class DarkflowTensorRT():
 
         # Model
         self.INPUT_NAME = 'input'
-        self.INPUT_SHAPE = (self.meta['net']['channels'], self.meta['net']['height'], self.meta['net']['width'])
+        self.INPUT_SHAPE = self.meta['inp_size']
         self.OUTPUT_NAME = 'output'
         
         self.prepare_engine(rebuild_engine)
@@ -71,7 +71,7 @@ class DarkflowTensorRT():
             builder.max_batch_size = self.MAX_BATCH_SIZE
             if self.DTYPE == trt.float16:
                 builder.fp16_mode = True
-            parser.register_input(self.INPUT_NAME, self.INPUT_SHAPE, trt.UffInputOrder.NCHW)
+            parser.register_input(self.INPUT_NAME, self.INPUT_SHAPE, trt.UffInputOrder.NHWC)
             parser.register_output(self.OUTPUT_NAME)
             parser.parse(model_file, network, self.DTYPE)
             
@@ -79,8 +79,7 @@ class DarkflowTensorRT():
 
 
     def load_input(self, img, host_buffer):
-        img_array = self.yoloFramework.resize_input(img)
-        img_array = img_array.transpose([2, 0, 1]).astype(trt.nptype(self.DTYPE)).ravel()
+        img_array = self.yoloFramework.resize_input(img).astype(trt.nptype(self.DTYPE)).ravel()
         np.copyto(host_buffer, img_array)
 
 
