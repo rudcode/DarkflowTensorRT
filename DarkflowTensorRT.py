@@ -41,7 +41,7 @@ class DarkflowTensorRT():
         self.MAX_WORKSPACE_SIZE = 1 << 29
 
         self.TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
-        self.DTYPE = trt.float32
+        self.DTYPE = trt.float16
 
         # Model
         self.INPUT_NAME = 'input'
@@ -53,8 +53,8 @@ class DarkflowTensorRT():
     def allocate_buffers(self, engine):
         print('allocate buffers')
         
-        h_input = cuda.pagelocked_empty(trt.volume(engine.get_binding_shape(0)), dtype=trt.nptype(self.DTYPE))
-        h_output = cuda.pagelocked_empty(trt.volume(engine.get_binding_shape(1)), dtype=trt.nptype(self.DTYPE))
+        h_input = cuda.pagelocked_empty(trt.volume(engine.get_binding_shape(0)), trt.nptype(engine.get_binding_dtype(0)))
+        h_output = cuda.pagelocked_empty(trt.volume(engine.get_binding_shape(1)), trt.nptype(engine.get_binding_dtype(1)))
         d_input = cuda.mem_alloc(h_input.nbytes)
         d_output = cuda.mem_alloc(h_output.nbytes)
         
@@ -71,6 +71,8 @@ class DarkflowTensorRT():
             builder.max_batch_size = self.MAX_BATCH_SIZE
             if self.DTYPE == trt.float16:
                 builder.fp16_mode = True
+                builder.strict_type_constraints = True
+                print("using float16 precision")
             parser.register_input(self.INPUT_NAME, self.INPUT_SHAPE, trt.UffInputOrder.NHWC)
             parser.register_output(self.OUTPUT_NAME)
             parser.parse(model_file, network, self.DTYPE)
